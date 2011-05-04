@@ -6,9 +6,10 @@ Create a config file in
 and fill it with these options:
 username = <user>@<jabber-server>
 password = <password>
+json_output = <path-to-json-file-to-output-serverlist-to>
 control_room = <room>@<conference-jabber-server>
 
-The last option is optional.
+The last two options are optional.
 
 The bot is used by either starting
 $ python rotcbot_jabber.py

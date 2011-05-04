@@ -13,11 +13,12 @@ from jabberbot import JabberBot, botcmd
 from RotcWatcher import Watcher
 import time
 import os    # just needed to get the HOME variable
+import json
 
 test = False
 
 class RotcBot(JabberBot):
-    def __init__(self, jid, password, res="main", debug=False):
+    def __init__(self, jid, password, res="main", debug=False, json_output=None):
         JabberBot.__init__(self, jid, password, res, debug)
         self.w = Watcher()
         self.server_ids = []       # enumerate keys of server_list
@@ -25,6 +26,8 @@ class RotcBot(JabberBot):
 
         self.roster = None
 
+        self.json_output = json_output
+        
         self.EVENTS = { 'new_game': 'The first player joins a server.',
                         'game_close': 'The last player leaves a server, or a server which had players is closed.',
                         'player_change': 'A change in player numbers on a server.',
@@ -160,7 +163,21 @@ class RotcBot(JabberBot):
         if self.last_rotc_update + 7 < int(time.time()):
             self._build_server_list()
             self.last_rotc_update = int(time.time())
+            
+            if self.json_output:
+                self.json_output()
 
+    def json_output(self):
+        try:
+            with open(self.json_output, 'w') as out:
+                data = {'time':self.last_rotc_update,
+                        'server_info':self.w.server_info}
+                json.dump(data, out)
+        except IOError, e:
+            self.error('Failed to write to json file: %s' % str(e))
+            return False
+        return True
+        
     def _build_server_list(self):
         self.w.update_server_list()
 
@@ -379,6 +396,13 @@ except KeyError:
     irc = False
     print "No irc configuration found"
     
+# Check if json output is configured
+try:
+    json_output = option['json_output']
+except KeyError:
+    json_output = None
+    print "No json output configuration found"
+    
 
 # control_room is a conference room on a jabber server, where the log is posted
 # and special commands can be called by whoever is in that room.
@@ -389,7 +413,7 @@ except KeyError:
     control_room = None
 
 try:
-    bot = RotcBot(option['username'], option['password'], res='prod')
+    bot = RotcBot(option['username'], option['password'], res='prod', json_output=json_output)
 except KeyError, e:
     print "You need to define username and password for the bot in the config file."
     raise e
